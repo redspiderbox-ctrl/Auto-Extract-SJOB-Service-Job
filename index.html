@@ -302,8 +302,8 @@ tr.new-row td[contenteditable]{
     <div class="header-content">
         <i class="fas fa-warehouse"></i>
         <div>
-            <h3>Manajemen Data Sparepart</h3>
-            <p>Upload, kelola, dan unduh data inventaris Anda secara efisien.</p>
+            <h3>Manajemen Data Sparepart Bekas</h3>
+            <p>Upload, kelola, sparepart bekas Anda secara efisien.</p>
         </div>
     </div>
 
@@ -578,7 +578,7 @@ tr.new-row td[contenteditable]{
         XLSX.writeFile(wb, "sparepart_data.xlsx");
     };
 
-    // --- DOWNLOAD PDF ---
+    // --- DOWNLOAD PDF (HEADER TENGAH, DATA NORMAL) ---
     document.getElementById("pdf").onclick = () => {
         if (data2.length === 0) return alert("Tidak ada data untuk diunduh.");
 
@@ -590,7 +590,7 @@ tr.new-row td[contenteditable]{
 
         doc.setFontSize(18);
         doc.setTextColor(40);
-        doc.text("Laporan Data Sparepart Bekas", 14, 20);
+        doc.text("Laporan Data Sparepart", 14, 20);
         
         doc.autoTable({
             head: [col],
@@ -611,12 +611,12 @@ tr.new-row td[contenteditable]{
                 textColor: 0,
                 fontStyle: "bold",
                 lineColor: 0,
-                lineWidth: 0.5
+                lineWidth: 0.5,
+                halign: 'center' // <--- INI MEMBUAT SEMUA HEADER TENGAH
             },
-            // PENGENALAN POSISI TENGAH UNTUK KOLOM NOMOR (0) DAN QTY (3)
             columnStyles: {
-                0: { halign: 'center' }, // Nomor
-                3: { halign: 'center' }  // Qty
+                0: { halign: 'center' }, // Kolom Nomor (Data & Header)
+                3: { halign: 'center' }  // Kolom Qty (Data & Header)
             },
             didParseCell: function (data) {
                 if (data.row.index === rows.length) {
