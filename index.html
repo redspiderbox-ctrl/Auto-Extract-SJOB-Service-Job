@@ -907,8 +907,8 @@ tfoot td { padding: 12px; border-bottom: none; border-top: 2px solid var(--borde
         var ws = XLSX.utils.aoa_to_sheet(wsData);
         ws["!cols"]=[{wch:6},{wch:30},{wch:30},{wch:14},{wch:14},{wch:25},{wch:25},{wch:15}];
         
-        XLSX.utils.book_append_sheet(wb,ws,"Tagihan Return");
-        XLSX.writeFile(wb,"Tagihan Return.xlsx");
+        XLSX.utils.book_append_sheet(wb,ws,"Tagihan Part Return");
+        XLSX.writeFile(wb,"Tagihan Part Return.xlsx");
         showToast("File Excel berhasil diunduh.","success"); 
     });
 
@@ -960,7 +960,7 @@ tfoot td { padding: 12px; border-bottom: none; border-top: 2px solid var(--borde
         // DIPERBARUI: Bagian Penutup dan Tanda Tangan DIHAPUS sesuai permintaan.
         // File PDF berakhir di Total Qty.
         
-        doc.save("Tagihan Return.pdf"); 
+        doc.save("Tagihan Part Return.pdf"); 
         showToast("File PDF berhasil diunduh.","success"); 
     });
 
