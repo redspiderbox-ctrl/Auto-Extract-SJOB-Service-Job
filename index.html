@@ -155,6 +155,8 @@ button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .btn-warning:hover { background: var(--warning-dark); }
 .btn-secondary { background: var(--border-color); color: #475569; }
 .btn-secondary:hover { background: var(--border-light); }
+.btn-info { background: #0ea5e9; color: #fff; }
+.btn-info:hover { background: #0284c7; }
 .btn-group-info { margin-left: auto; font-size: 12px; color: var(--text-muted); font-weight: 500; display: flex; align-items: center; gap: 6px; padding: 0; box-shadow: none; cursor: default; background: none; }
 .badge { background: var(--primary-light); color: var(--primary); font-weight: 700; padding: 2px 9px; border-radius: 20px; font-size: 11px; }
 
@@ -228,12 +230,21 @@ tbody tr:hover td { background: var(--hover-bg); }
 .col-action { width: 56px; text-align: center; }
 .cb-cell { accent-color: var(--primary); width: 16px; height: 16px; cursor: pointer; }
 
+/* Styling for editable cells (Tab 1-4) */
 td[contenteditable] {
     background: var(--card-bg); border: 1px solid transparent; border-radius: 4px;
     transition: background 0.15s, border-color 0.15s; outline: none; cursor: text;
 }
 td[contenteditable]:hover { border-color: var(--border-light); }
 td[contenteditable]:focus { background: var(--primary-subtle); border-color: var(--primary); }
+
+/* Styling for READ-ONLY cells (Tab 5) */
+td.read-only-cell {
+    background: transparent; 
+    cursor: default; 
+    /* Optional: Slightly different background to indicate it's static */
+    /* background: #f8fafc; */
+}
 
 td.no-urut {
     font-weight: 700; color: var(--primary); text-align: center;
@@ -441,16 +452,18 @@ tfoot td { padding: 12px; border-bottom: none; border-top: 2px solid var(--borde
         <!-- TAB 5 -->
         <section id="tab5" class="tab-content" role="tabpanel">
             <div class="btn-group">
-                <button class="btn-success" id="addRowBtn5" aria-label="Tambah baris baru"><i class="fas fa-plus-circle"></i> Tambah Baris</button>
+                <!-- Tombol Tambah Baris dihapus karena sekarang read-only dari Tab 1 -->
                 <button class="btn-primary" id="excelBtn5" aria-label="Unduh sebagai Excel"><i class="fas fa-file-excel"></i> Download Excel</button>
                 <button class="btn-secondary" id="pdfBtn5" aria-label="Unduh sebagai PDF"><i class="fas fa-file-pdf"></i> Download PDF</button>
+                <button class="btn-info" id="jpegBtn5" aria-label="Unduh sebagai JPEG HD"><i class="fas fa-image"></i> Download JPEG (HD)</button>
                 <span class="btn-group-info"><span class="badge" id="stockCountBadge5">0</span> baris surat jalan</span>
             </div>
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;"><i class="fas fa-info-circle"></i> Data diambil dari Tab 1 (Data Terpilih). Tabel ini bersifat <strong>Read Only</strong>.</p>
             <label for="search5" class="sr-only">Cari data di tabel tagihan return</label>
             <input type="text" id="search5" placeholder="Cari data tagihan return...">
             <div class="table-container">
                 <table id="table5"><thead><tr>
-                    <th class="col-no">No. Urut</th><th>Catatan</th><th>Part</th><th>Qty Reservasi</th><th>Part Demand</th><th>Serial Number</th><th>Teknisi Perbaikan</th><th>Disetujui Pada</th><th>Lamanya Hari</th><th class="col-action">Aksi</th>
+                    <th class="col-no">No. Urut</th><th>Catatan</th><th>Part</th><th>Qty Reservasi</th><th>Part Demand</th><th>Serial Number</th><th>Teknisi Perbaikan</th><th>Disetujui Pada</th><th>Lamanya Hari</th>
                 </tr></thead><tbody id="tbody5"></tbody>
                 <tfoot><tr><td colspan="3" class="total-label">Total Qty</td><td id="totalQty5" class="total-value">0</td><td colspan="6"></td></tr></tfoot></table>
             </div>
@@ -463,6 +476,7 @@ tfoot td { padding: 12px; border-bottom: none; border-top: 2px solid var(--borde
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <script>
 (function() {
@@ -479,7 +493,7 @@ tfoot td { padding: 12px; border-bottom: none; border-top: 2px solid var(--borde
     const fileInput = $("#fileInput"), 
           search1 = $("#search1"), search2 = $("#search2"), search3 = $("#search3"), search4 = $("#search4"), search5 = $("#search5");
     const filterTeknisi = $("#filterTeknisi"), filterReturn = $("#filterReturn"), filterClaim = $("#filterClaim"), filterPengiriman = $("#filterPengiriman");
-    const addRowBtn = $("#addRowBtn"), addRowBtn3 = $("#addRowBtn3"), addRowBtn4 = $("#addRowBtn4"), addRowBtn5 = $("#addRowBtn5");
+    const addRowBtn = $("#addRowBtn"), addRowBtn3 = $("#addRowBtn3"), addRowBtn4 = $("#addRowBtn4");
     const resetBtn = $("#resetBtn"), checkAllCb = $("#checkAll"), deleteSelectedBtn = $("#deleteSelectedBtn");
     const tbody1 = $("#tbody1"), tbody2 = $("#tbody2"), tbody3 = $("#tbody3"), tbody4 = $("#tbody4"), tbody5 = $("#tbody5");
     const totalQty1El = $("#totalQty1"), totalQty2El = $("#totalQty2"), totalQty3aEl = $("#totalQty3a"), totalQty4El = $("#totalQty4"), totalQty5El = $("#totalQty5");
@@ -633,7 +647,7 @@ tfoot td { padding: 12px; border-bottom: none; border-top: 2px solid var(--borde
     search4.addEventListener("input", debounce(function() { currentFilter4 = search4.value.toLowerCase(); renderTable4(); }, 300));
     search5.addEventListener("input", debounce(function() { currentFilter5 = search5.value.toLowerCase(); renderTable5(); }, 300));
 
-    // ========== TAMBAH BARIS ==========
+    // ========== TAMBAH BARIS (Hanya Tab 2, 3, 4) ==========
     addRowBtn.addEventListener("click", function() { 
         data2.push({ "No_Urut":"", "Catatan":"", "Part":"", "Qty Transaksi":"", "Part Demand":"", "Serial Number":"", "Teknisi Perbaikan":"", _isNew:true }); 
         renderTable2(); showToast("Baris baru ditambahkan.", "success"); 
@@ -645,10 +659,6 @@ tfoot td { padding: 12px; border-bottom: none; border-top: 2px solid var(--borde
     addRowBtn4.addEventListener("click", function() { 
         data4.push({ "No_Urut":"", "Catatan":"", "Part":"", "Qty Reservasi":"", "Part Demand":"", "Serial Number":"", "Teknisi Perbaikan":"", _isNew:true }); 
         renderTable4(); showToast("Baris baru ditambahkan.", "success"); 
-    });
-    addRowBtn5.addEventListener("click", function() { 
-        data5.push({ "No_Urut":"", "Catatan":"", "Part":"", "Qty Reservasi":"", "Part Demand":"", "Serial Number":"", "Teknisi Perbaikan":"", "Disetujui Pada":"", "Lamanya Hari":"", _isNew:true }); 
-        renderTable5(); showToast("Baris baru ditambahkan.", "success"); 
     });
     
     // ========== DELETE SELECTED ==========
@@ -703,46 +713,88 @@ tfoot td { padding: 12px; border-bottom: none; border-top: 2px solid var(--borde
     function syncToTab2() { var fromTab1=[]; selectedIndexes.forEach(idx => { if(data1[idx]){ var r=Object.assign({},data1[idx],{_sourceIdx:idx,_isNew:false}); fromTab1.push(r); } }); var manual=data2.filter(r=>r._isNew); data2=fromTab1.concat(manual); selectedBadge.textContent=data2.length; renderTable2(); }
     function syncToTab3() { var fromTab1=[]; selectedIndexes.forEach(idx => { if(data1[idx]){ var src=data1[idx]; var t2r=null; for(var i=0; i<data2.length; i++){ if(data2[i]._sourceIdx === idx) { t2r = data2[i]; break; } } var cs=(t2r&&t2r["Catatan"])?t2r["Catatan"]:(src["Catatan"]||""); var r={_sourceIdx:idx,_isNew:false,"Part Demand / Part":(t2r&&t2r["Part"])?t2r["Part"]:(src["Part"]||""),"Lot":"","Attribute":"","QTY / Qty Transaksi":(t2r&&t2r["Qty Transaksi"])?t2r["Qty Transaksi"]:(src["Qty Transaksi"]||""),"QTY Konversi":"","UM Konversi":"","Remarks 1":"","Remarks 2":"","Nomor Service Job / Catatan":extractSjob(cs)}; fromTab1.push(r); } }); var manual=data3.filter(r=>r._isNew); data3=fromTab1.concat(manual); demandBadge.textContent=data3.length; renderTable3(); }
     function syncToTab4() { var fromTab1=[]; selectedIndexes.forEach(idx => { if(data1[idx]){ var r=Object.assign({},data1[idx],{_sourceIdx:idx,_isNew:false}); fromTab1.push(r); } }); var manual=data4.filter(r=>r._isNew); data4=fromTab1.concat(manual); stockBadge.textContent=data4.length; renderTable4(); }
-    function syncToTab5() { var fromTab1=[]; selectedIndexes.forEach(idx => { if(data1[idx]){ var r=Object.assign({},data1[idx],{_sourceIdx:idx,_isNew:false}); fromTab1.push(r); } }); var manual=data5.filter(r=>r._isNew); data5=fromTab1.concat(manual); stockBadge5.textContent=data5.length; renderTable5(); }
+    
+    // Perubahan: Tab 5 sync dengan Tab 1
+    function syncToTab5() { 
+        var fromTab1=[]; 
+        selectedIndexes.forEach(idx => { 
+            if(data1[idx]){ 
+                // Ambil data dari Tab 1, dan hitung 'Lamanya Hari' di dalam objek
+                var src = data1[idx];
+                var days = calculateDays(src["Disetujui Pada"]);
+                
+                var r=Object.assign({}, src, {
+                    _sourceIdx:idx,
+                    _isNew:false,
+                    "Lamanya Hari": days
+                }); 
+                fromTab1.push(r); 
+            } 
+        }); 
+        // Tab 5 tidak lagi memiliki data manual (tidak ada addRowBtn5), jadi kita hanya pakai fromTab1
+        data5=fromTab1; 
+        stockBadge5.textContent=data5.length; 
+        renderTable5(); 
+    }
 
-    // ========== RENDER TABEL 2, 3, 4 & 5 ==========
+    // ========== RENDER TABEL 2, 3, 4 ==========
     function renderTable2() { var frag=document.createDocumentFragment(), filtered=getFiltered(data2,currentFilter2), total=0; if(!filtered.length && !data2.length){ var tr=document.createElement("tr"); tr.innerHTML='<td colspan="8"><div class="empty-state"><i class="fas fa-clipboard-list"></i><p>Belum ada data diproses.</p></div></td>'; frag.appendChild(tr); } else if(!filtered.length){ var tr=document.createElement("tr"); tr.innerHTML='<td colspan="8"><div class="empty-state"><i class="fas fa-search"></i><p>Tidak ditemukan.</p></div></td>'; frag.appendChild(tr); } else { for(var fi=0; fi<filtered.length; fi++){ var row=filtered[fi]; var ri = data2.indexOf(row); total+=parseFloat(row["Qty Transaksi"])||0; var tr=document.createElement("tr"); if(row._isNew) tr.className="new-row"; var tdN=document.createElement("td"); tdN.className="no-urut"; tdN.textContent=fi+1; tr.appendChild(tdN); for(var ki=1; ki<KEYS_TAB2.length; ki++){ var td=document.createElement("td"); td.contentEditable="true"; td.dataset.key=KEYS_TAB2[ki]; td.dataset.ridx=ri; td.textContent=row[KEYS_TAB2[ki]]||""; tr.appendChild(td); } var tdA=document.createElement("td"); tdA.className="col-action"; var btn=document.createElement("button"); btn.className="btn-danger"; btn.dataset.ridx=ri; btn.innerHTML='<i class="fas fa-trash-alt"></i>'; tdA.appendChild(btn); tr.appendChild(tdA); frag.appendChild(tr); } } tbody2.innerHTML=""; tbody2.appendChild(frag); totalQty2El.textContent=total.toLocaleString("id-ID"); }
     function renderTable3() { var frag=document.createDocumentFragment(), filtered=getFiltered(data3,currentFilter3), totalA=0; if(!filtered.length && !data3.length){ var tr=document.createElement("tr"); tr.innerHTML='<td colspan="11"><div class="empty-state"><i class="fas fa-exchange-alt"></i><p>Belum ada data SJOB.</p></div></td>'; frag.appendChild(tr); } else if(!filtered.length){ var tr=document.createElement("tr"); tr.innerHTML='<td colspan="11"><div class="empty-state"><i class="fas fa-search"></i><p>Tidak ditemukan.</p></div></td>'; frag.appendChild(tr); } else { for(var fi=0; fi<filtered.length; fi++){ var row=filtered[fi]; var ri = data3.indexOf(row); totalA+=parseFloat(row["QTY / Qty Transaksi"])||0; var tr=document.createElement("tr"); if(row._isNew) tr.className="new-row"; var tdN=document.createElement("td"); tdN.className="no-urut"; tdN.textContent=fi+1; tr.appendChild(tdN); for(var ki=1; ki<KEYS_TAB3.length; ki++){ var td=document.createElement("td"); td.contentEditable="true"; td.dataset.key=KEYS_TAB3[ki]; td.dataset.ridx3=ri; td.textContent=row[KEYS_TAB3[ki]]||""; tr.appendChild(td); } var tdA=document.createElement("td"); tdA.className="col-action"; var btn=document.createElement("button"); btn.className="btn-danger"; btn.dataset.ridx3=ri; btn.innerHTML='<i class="fas fa-trash-alt"></i>'; tdA.appendChild(btn); tr.appendChild(tdA); frag.appendChild(tr); } } tbody3.innerHTML=""; tbody3.appendChild(frag); totalQty3aEl.textContent=totalA.toLocaleString("id-ID"); demandBadge.textContent=data3.length; }
     function renderTable4() { var frag=document.createDocumentFragment(), filtered=getFiltered(data4,currentFilter4), total=0; if(!filtered.length && !data4.length){ var tr=document.createElement("tr"); tr.innerHTML='<td colspan="8"><div class="empty-state"><i class="fas fa-boxes"></i><p>Belum ada data surat jalan.</p></div></td>'; frag.appendChild(tr); } else if(!filtered.length){ var tr=document.createElement("tr"); tr.innerHTML='<td colspan="8"><div class="empty-state"><i class="fas fa-search"></i><p>Tidak ditemukan.</p></div></td>'; frag.appendChild(tr); } else { for(var fi=0; fi<filtered.length; fi++){ var row=filtered[fi]; var ri = data4.indexOf(row); total+=parseFloat(row["Qty Reservasi"])||0; var tr=document.createElement("tr"); if(row._isNew) tr.className="new-row"; var tdN=document.createElement("td"); tdN.className="no-urut"; tdN.textContent=fi+1; tr.appendChild(tdN); for(var ki=1; ki<KEYS_TAB4.length; ki++){ var td=document.createElement("td"); td.contentEditable="true"; td.dataset.key=KEYS_TAB4[ki]; td.dataset.ridx4=ri; td.textContent=row[KEYS_TAB4[ki]]||""; tr.appendChild(td); } var tdA=document.createElement("td"); tdA.className="col-action"; var btn=document.createElement("button"); btn.className="btn-danger"; btn.dataset.ridx4=ri; btn.innerHTML='<i class="fas fa-trash-alt"></i>'; tdA.appendChild(btn); tr.appendChild(tdA); frag.appendChild(tr); } } tbody4.innerHTML=""; tbody4.appendChild(frag); totalQty4El.textContent=total.toLocaleString("id-ID"); }
     
+    // ========== RENDER TABEL 5 (READ ONLY) ==========
     function renderTable5() { 
         var frag=document.createDocumentFragment(), filtered=getFiltered(data5,currentFilter5), total=0; 
-        if(!filtered.length && !data5.length){ var tr=document.createElement("tr"); tr.innerHTML='<td colspan="10"><div class="empty-state"><i class="fas fa-truck-loading"></i><p>Belum ada data tagihan return.</p></div></td>'; frag.appendChild(tr); } 
-        else if(!filtered.length){ var tr=document.createElement("tr"); tr.innerHTML='<td colspan="10"><div class="empty-state"><i class="fas fa-search"></i><p>Tidak ditemukan.</p></div></td>'; frag.appendChild(tr); } 
-        else { 
+        
+        // Jika kosong
+        if(!filtered.length && !data5.length){ 
+            var tr=document.createElement("tr"); 
+            tr.innerHTML='<td colspan="9"><div class="empty-state"><i class="fas fa-truck-loading"></i><p>Belum ada data tagihan return. Pilih data di Tab 1.</p></div></td>'; 
+            frag.appendChild(tr); 
+        } else if(!filtered.length){ 
+            var tr=document.createElement("tr"); 
+            tr.innerHTML='<td colspan="9"><div class="empty-state"><i class="fas fa-search"></i><p>Tidak ditemukan.</p></div></td>'; 
+            frag.appendChild(tr); 
+        } else { 
             for(var fi=0; fi<filtered.length; fi++){ 
                 var row=filtered[fi]; 
                 var ri = data5.indexOf(row); 
                 total+=parseFloat(row["Qty Reservasi"])||0; 
                 var tr=document.createElement("tr"); 
-                if(row._isNew) tr.className="new-row"; 
-                var tdN=document.createElement("td"); tdN.className="no-urut"; tdN.textContent=fi+1; tr.appendChild(tdN); 
                 
+                // Baris baru flag (jarang terjadi karena dari import, tapi antisipasi)
+                if(row._isNew) tr.className="new-row"; 
+                
+                // Kolom No Urut
+                var tdN=document.createElement("td"); 
+                tdN.className="no-urut"; 
+                tdN.textContent=fi+1; 
+                tr.appendChild(tdN); 
+                
+                // Loop Kolom Lainnya
                 for(var ki=1; ki<KEYS_TAB5.length; ki++){ 
                     var key=KEYS_TAB5[ki];
                     var td=document.createElement("td"); 
                     
+                    // Khusus Kolom Lamanya Hari (Sudah dihitung di syncToTab5)
                     if(key === "Lamanya Hari") {
                         td.className = "days-count";
-                        var days = calculateDays(row["Disetujui Pada"]);
-                        td.textContent = days;
-                        row[key] = days; 
+                        td.textContent = row[key] || ""; // Ambil dari data yang sudah dihitung
                     } else {
-                        td.contentEditable = "true"; 
-                        td.dataset.key = key; 
-                        td.dataset.ridx5 = ri; 
+                        // MODIFIKASI: TIDAK ADA contentEditable
+                        td.className = "read-only-cell"; 
                         td.textContent = row[key]||""; 
                     }
                     tr.appendChild(td); 
                 } 
+                
+                // Tombol hapus dihapuskan karena read-only dari sumber
+                /*
                 var tdA=document.createElement("td"); tdA.className="col-action"; 
                 var btn=document.createElement("button"); btn.className="btn-danger"; btn.dataset.ridx5=ri; btn.innerHTML='<i class="fas fa-trash-alt"></i>'; 
-                tdA.appendChild(btn); tr.appendChild(tdA); frag.appendChild(tr); 
+                tdA.appendChild(btn); tr.appendChild(tdA);
+                */ 
+                frag.appendChild(tr); 
             } 
         } 
         tbody5.innerHTML=""; tbody5.appendChild(frag); totalQty5El.textContent=total.toLocaleString("id-ID"); 
@@ -758,20 +810,11 @@ tfoot td { padding: 12px; border-bottom: none; border-top: 2px solid var(--borde
     tbody4.addEventListener("focusout", function(e) { if(e.target.hasAttribute("contenteditable")){ var ri=parseInt(e.target.dataset.ridx4), k=e.target.dataset.key; if(data4[ri]!==undefined){ data4[ri][k]=e.target.textContent; if(k==="Qty Reservasi") totalQty4El.textContent=calcTotal(data4,"Qty Reservasi").toLocaleString("id-ID"); } } });
     tbody4.addEventListener("click", function(e) { if(e.target.closest(".btn-danger")){ var ri=parseInt(e.target.closest(".btn-danger").dataset.ridx4); var row=data4[ri]; if(row && row._sourceIdx !== undefined){ selectedIndexes.delete(row._sourceIdx); updateCheckAllState(); renderTable1(); syncToTab2(); syncToTab3(); syncToTab5(); } data4.splice(ri,1); stockBadge.textContent=data4.length; renderTable4(); showToast("Baris surat jalan berhasil dihapus.","danger"); } });
 
-    // Event Delegasi Tab 5
-    tbody5.addEventListener("focusout", function(e) { 
-        if(e.target.hasAttribute("contenteditable")){ 
-            var ri=parseInt(e.target.dataset.ridx5), k=e.target.dataset.key; 
-            if(data5[ri]!==undefined){ 
-                data5[ri][k]=e.target.textContent; 
-                if(k==="Qty Reservasi") totalQty5El.textContent=calcTotal(data5,"Qty Reservasi").toLocaleString("id-ID");
-                if(k==="Disetujui Pada") {
-                    renderTable5(); 
-                }
-            } 
-        } 
-    });
-    tbody5.addEventListener("click", function(e) { if(e.target.closest(".btn-danger")){ var ri=parseInt(e.target.closest(".btn-danger").dataset.ridx5); var row=data5[ri]; if(row && row._sourceIdx !== undefined){ selectedIndexes.delete(row._sourceIdx); updateCheckAllState(); renderTable1(); syncToTab2(); syncToTab3(); syncToTab4(); } data5.splice(ri,1); stockBadge5.textContent=data5.length; renderTable5(); showToast("Baris tagihan return berhasil dihapus.","danger"); } });
+    // Event Delegasi Tab 5 DIHAPUS karena Read Only
+    /*
+    tbody5.addEventListener("focusout", function(e) { ... });
+    tbody5.addEventListener("click", function(e) { ... });
+    */
 
     // ========== EXPORTS ==========
     // Tab 2
@@ -870,19 +913,16 @@ tfoot td { padding: 12px; border-bottom: none; border-top: 2px solid var(--borde
         showToast("File PDF berhasil diunduh.","success"); 
     });
 
-    // Tab 5 (TAGIHAN RETURN) - MODIFIKASI: HAPUS ALAMAT, PENUTUP, & TANDA TANGAN
+    // Tab 5 (TAGIHAN RETURN) - Export Excel
     $("#excelBtn5").addEventListener("click", function() { 
         if(!data5.length){showToast("Tidak ada data.","danger");return;} 
         var wb = XLSX.utils.book_new();
         var wsData = [];
         
-        // Hanya Judul dan Tanggal
         wsData.push(["Tagihan Sparepart Bekas Return"]); 
         wsData.push([]);
         wsData.push(["Tanggal: " + new Date().toLocaleDateString("id-ID", {day:"numeric", month:"long", year:"numeric"})]); 
         wsData.push([]);
-        
-        // Header Tabel
         wsData.push(["No", "Catatan", "Part", "Qty Reservasi", "Part Demand", "Serial Number", "Teknisi Perbaikan", "Lamanya Hari"]);
         
         var gt=calcTotal(data5,"Qty Reservasi"); 
@@ -899,10 +939,7 @@ tfoot td { padding: 12px; border-bottom: none; border-top: 2px solid var(--borde
                 r["Lamanya Hari"]||""
             ]); 
         }
-        // Total
         wsData.push(["", "", "TOTAL QTY", gt, "", "", "", ""]); 
-        
-        // Batas akhir dokumen (Tidak ada penutup/tanda tangan)
         
         var ws = XLSX.utils.aoa_to_sheet(wsData);
         ws["!cols"]=[{wch:6},{wch:30},{wch:30},{wch:14},{wch:14},{wch:25},{wch:25},{wch:15}];
@@ -912,12 +949,12 @@ tfoot td { padding: 12px; border-bottom: none; border-top: 2px solid var(--borde
         showToast("File Excel berhasil diunduh.","success"); 
     });
 
+    // Tab 5 (TAGIHAN RETURN) - Export PDF
     $("#pdfBtn5").addEventListener("click", function() { 
         if(!data5.length){showToast("Tidak ada data.","danger");return;} 
         var doc=new jsPDF({orientation:"l", unit:"mm", format:"a4"}), pw=doc.internal.pageSize.getWidth(), mg={left:12, right:12}; 
         var col=["No","Catatan","Part","Qty","Demand","Serial","Teknisi","Lama Hari"], rows=[]; 
         
-        // Header HANYA Judul dan Tanggal (Alamat dihapus)
         doc.setFontSize(18); doc.setTextColor(30,41,59); doc.setFont(undefined,"bold"); doc.text("Tagihan Sparepart Bekas Return", pw/2, 20, {align: "center"});
         
         doc.setFontSize(10); doc.setTextColor(100,116,139); doc.setFont(undefined,"normal");
@@ -925,7 +962,6 @@ tfoot td { padding: 12px; border-bottom: none; border-top: 2px solid var(--borde
         
         doc.setDrawColor(200,200,200); doc.line(mg.left, 26, pw-mg.right, 26);
         
-        // Tabel
         for(var i=0;i<data5.length;i++){
             var r=data5[i]; 
             rows.push([
@@ -950,18 +986,104 @@ tfoot td { padding: 12px; border-bottom: none; border-top: 2px solid var(--borde
             theme:"grid"
         }); 
         
-        // Total
         var fy=doc.lastAutoTable.finalY, gt=calcTotal(data5,"Qty Reservasi"); 
         var totX = mg.left + 60; 
         doc.setFontSize(10); doc.setTextColor(30,41,59); doc.setFont(undefined,"bold"); 
         doc.text("TOTAL QTY:", totX, fy+7, {align:"left"}); 
         doc.setTextColor(5,150,105); doc.text(String(gt), totX + 25, fy+7, {align:"left"}); 
-
-        // DIPERBARUI: Bagian Penutup dan Tanda Tangan DIHAPUS sesuai permintaan.
-        // File PDF berakhir di Total Qty.
         
         doc.save("Tagihan Part Return.pdf"); 
         showToast("File PDF berhasil diunduh.","success"); 
+    });
+
+    // --- FITUR BARU: TAB 5 JPEG HD ---
+    $("#jpegBtn5").addEventListener("click", function() {
+        if(!data5.length){showToast("Tidak ada data untuk di-export.","danger");return;}
+        
+        showToast("Memproses gambar HD...", "info");
+
+        // 1. Buat elemen container sementara untuk rendering
+        var container = document.createElement('div');
+        container.style.position = 'absolute';
+        container.style.left = '-9999px';
+        container.style.top = '0';
+        container.style.backgroundColor = '#ffffff';
+        container.style.padding = '40px'; // Padding untuk margin putih
+        container.style.fontFamily = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+        document.body.appendChild(container);
+
+        // 2. Buat Header
+        var header = document.createElement('div');
+        header.style.marginBottom = '30px';
+        header.innerHTML = `
+            <h2 style="margin:0; font-size:32px; color:#1e293b; text-align:center; font-weight:800;">Tagihan Sparepart Bekas Return</h2>
+            <p style="margin:10px 0 0 0; font-size:16px; color:#64748b; text-align:right;">Tanggal: ${new Date().toLocaleDateString("id-ID", {day:"numeric", month:"long", year:"numeric"})}</p>
+            <hr style="border:0; border-top:2px solid #e2e8f0; margin-top:15px;">
+        `;
+        container.appendChild(header);
+
+        // 3. Buat Tabel HTML (Clone dari struktur PDF logic agar konsisten)
+        var table = document.createElement('table');
+        table.style.width = '100%';
+        table.style.borderCollapse = 'collapse';
+        
+        // Header Tabel
+        var thead = ['No','Catatan','Part','Qty','Demand','Serial','Teknisi','Lama Hari'];
+        var htmlHeader = '<thead><tr>';
+        thead.forEach(h => {
+            htmlHeader += `<th style="background-color:#f8fafc; color:#1e293b; font-weight:700; font-size:16px; padding:12px; border:1px solid #e2e8f0; text-align:center; text-transform:uppercase;">${h}</th>`;
+        });
+        htmlHeader += '</tr></thead>';
+        
+        // Body Tabel
+        var htmlBody = '<tbody>';
+        for(var i=0; i<data5.length; i++){
+            var r = data5[i];
+            htmlBody += '<tr>';
+            htmlBody += `<td style="text-align:center; padding:10px; border:1px solid #e2e8f0; font-size:15px;">${i+1}</td>`;
+            htmlBody += `<td style="padding:10px; border:1px solid #e2e8f0; font-size:15px;">${r["Catatan"]||""}</td>`;
+            htmlBody += `<td style="padding:10px; border:1px solid #e2e8f0; font-size:15px;">${r["Part"]||""}</td>`;
+            htmlBody += `<td style="text-align:center; padding:10px; border:1px solid #e2e8f0; font-size:15px;">${r["Qty Reservasi"]||""}</td>`;
+            htmlBody += `<td style="padding:10px; border:1px solid #e2e8f0; font-size:15px;">${r["Part Demand"]||""}</td>`;
+            htmlBody += `<td style="padding:10px; border:1px solid #e2e8f0; font-size:15px;">${r["Serial Number"]||""}</td>`;
+            htmlBody += `<td style="padding:10px; border:1px solid #e2e8f0; font-size:15px;">${r["Teknisi Perbaikan"]||""}</td>`;
+            htmlBody += `<td style="text-align:center; padding:10px; border:1px solid #e2e8f0; font-size:15px; background:#f8fafc; font-weight:600;">${r["Lamanya Hari"]||""}</td>`;
+            htmlBody += '</tr>';
+        }
+        htmlBody += '</tbody>';
+
+        // Total
+        var gt = calcTotal(data5, "Qty Reservasi");
+        htmlBody += `<tfoot><tr>
+            <td colspan="3" style="text-align:right; padding:12px; font-weight:bold; font-size:16px; border:1px solid #e2e8f0;">TOTAL QTY</td>
+            <td style="text-align:center; padding:12px; font-weight:800; font-size:18px; color:#10b981; border:1px solid #e2e8f0; background:#ecfdf5;">${gt}</td>
+            <td colspan="4" style="border:1px solid #e2e8f0;"></td>
+        </tr></tfoot>`;
+
+        table.innerHTML = htmlHeader + htmlBody;
+        container.appendChild(table);
+
+        // 4. Konversi ke Canvas menggunakan html2canvas (Scale 2 untuk HD)
+        html2canvas(container, { 
+            scale: 2, // Resolusi tinggi
+            useCORS: true,
+            logging: false,
+            backgroundColor: "#ffffff"
+        }).then(function(canvas) {
+            // Hapus container sementara
+            document.body.removeChild(container);
+
+            // 5. Download sebagai JPEG
+            var link = document.createElement('a');
+            link.download = 'Tagihan Part Return HD.jpeg';
+            link.href = canvas.toDataURL('image/jpeg', 0.95); // Kualitas 95%
+            link.click();
+            
+            showToast("File JPEG HD berhasil diunduh.", "success");
+        }).catch(function(err) {
+            document.body.removeChild(container);
+            showToast("Gagal membuat gambar: " + err.message, "danger");
+        });
     });
 
     function appendNotes(exp) { var n=$$("#manualNotesContainer .note-input"),h=false; for(var i=0;i<n.length;i++){if(n[i].innerText.trim()){h=true;break;}} if(!h)return; exp.push({"No":"","Catatan":"","Part":"","Qty Transaksi":"","Part Demand":"","Serial Number":"","Teknisi Perbaikan":""}); exp.push({"No":"Keterangan:","Catatan":"","Part":"","Qty Transaksi":"","Part Demand":"","Serial Number":"","Teknisi Perbaikan":""}); for(var i=0;i<n.length;i++){var t=n[i].innerText.trim();if(t)exp.push({"No":(i+1)+".","Catatan":t,"Part":"","Qty Transaksi":"","Part Demand":"","Serial Number":"","Teknisi Perbaikan":""});} }
